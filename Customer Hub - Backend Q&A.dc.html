@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  doc-page:not(:defined) { visibility: hidden; }
+  body { font-family: 'Plus Jakarta Sans', Verdana, Geneva, sans-serif; color: #24273a; }
+  h1, h2, h3 { color: #1c1e61; }
+  a { color: #4146e0; }
+</style>
+</helmet>
+<x-import component-from-global-scope="doc-page" from="./doc-page.js" size="letter" margin="0.8in" hint-size="100%,100%">
+
+  <div slot="header" style="display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:#8b8798;letter-spacing:0.3px;padding-bottom:6px;border-bottom:1px solid #ece7e3">
+    <span style="font-weight:700;color:#1c1e61">Momentus Customer Hub</span>
+    <span>Backend Feasibility Q&amp;A · Confidential — Internal Draft</span>
+  </div>
+
+  <h1 style="font-size:30px;font-weight:800;line-height:1.15;margin:4px 0 4px">Customer Hub — How It Would Really Work on the Backend</h1>
+  <p style="font-size:13px;color:#8b8798;margin:0 0 22px">A working Q&amp;A on identity, provisioning, embedding, and search — written to separate what the prototype <em>shows</em> from what the production build actually <em>requires</em>.</p>
+
+  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #6d5ef0;border-radius:10px;padding:16px 20px;margin:0 0 26px">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6d5ef0;margin-bottom:8px">Bottom line up front</div>
+    <p style="font-size:14.5px;line-height:1.6;margin:0 0 10px">The prototype proves the <strong>experience</strong>. The production version is mostly an <strong>integration and identity program</strong>, not a net-new app. Two parts are genuinely hard given how locked-down our systems are:</p>
+    <ul style="font-size:14px;line-height:1.6;margin:0;padding-left:20px">
+      <li style="margin-bottom:5px"><strong>One login for all five</strong> is achievable, but only as fast as our <em>slowest</em> vendor's SSO + provisioning support.</li>
+      <li style="margin-bottom:0"><strong>Unified search is the real challenge.</strong> Doing it well — across five access-controlled systems, respecting each user's permissions — is not something I'd recommend we build from scratch. This is a buy-or-partner decision.</li>
+    </ul>
+  </div>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">1 · Identity &amp; Single Sign-On</h2>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Can one login realistically unlock all five destinations?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 12px">Yes — this is the most solvable part. It relies on a central identity provider (IdP) — Okta, Microsoft Entra ID, or Auth0 — as the single source of truth. Each destination (360Learning, the Zendesk support centers, the Zealot community, the missions/rewards platform) is registered as a <em>service provider</em> that trusts our IdP over <strong>SAML 2.0</strong> or <strong>OIDC</strong>. The user authenticates once against the IdP; every destination then accepts that identity without a second prompt.</p>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">What has to be true for that to work?</h3>
+  <ul style="font-size:14.5px;line-height:1.6;margin:0 0 12px;padding-left:20px">
+    <li style="margin-bottom:5px">Every vendor must support SSO on <em>our</em> tenant's plan (often a higher/enterprise tier — worth confirming per contract).</li>
+    <li style="margin-bottom:5px">We standardize on one IdP and one identifier (usually corporate email) so the same person maps cleanly across systems.</li>
+    <li style="margin-bottom:0">The hub itself is also an SSO client — so opening the hub <em>is</em> the login, and links out inherit the session.</li>
+  </ul>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Does the "no second login anywhere" promise hold?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 6px">Practically, yes — with one honest caveat. The <em>first</em> time a user reaches a destination, some vendors bounce through an IdP redirect (a brief, invisible round-trip). After that the session is live. What we avoid entirely is re-entering credentials. The prototype's single sign-in button is the accurate promise; the redirects are plumbing the user won't notice.</p>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">2 · Provisioning &amp; User Lifecycle</h2>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">How do accounts actually get created in each system?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 12px">Two mechanisms, ideally combined. <strong>Just-in-time (JIT) provisioning</strong> creates the account on first SSO login from the identity token. <strong>SCIM</strong> keeps it in sync afterward — pushing joins, role changes, and (critically) <em>deprovisioning</em> when someone leaves, so access is revoked everywhere from one place.</p>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Where's the friction?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 10px">This is where "locked-down" bites. Not every platform supports SCIM, and the ones that do may gate it behind a plan tier. Where SCIM is absent we fall back to API-based or scheduled sync — more custom code and more failure modes. Role mapping is the subtler problem: an "admin" in 360Learning is not an "admin" in Zendesk, so we need an agreed mapping from IdP groups to each system's roles, and an owner for it.</p>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">System-by-system readiness (to confirm per contract/plan)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 6px">
+    <thead>
+      <tr style="background:#1c1e61;color:#fff;text-align:left">
+        <th style="padding:8px 10px;font-weight:600">System</th>
+        <th style="padding:8px 10px;font-weight:600">Underlying platform</th>
+        <th style="padding:8px 10px;font-weight:600">SSO</th>
+        <th style="padding:8px 10px;font-weight:600">Auto-provisioning</th>
+        <th style="padding:8px 10px;font-weight:600">Content/Search API</th>
+        <th style="padding:8px 10px;font-weight:600">Embeddable</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">Learning</td>
+        <td style="padding:7px 10px">360Learning</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">○</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3;background:#faf8f6">
+        <td style="padding:7px 10px;font-weight:600">Support (×4)</td>
+        <td style="padding:7px 10px">Zendesk help centers</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">○</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">Community</td>
+        <td style="padding:7px 10px">Zealot</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">○</td>
+        <td style="padding:7px 10px">○</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3;background:#faf8f6">
+        <td style="padding:7px 10px;font-weight:600">Missions / Rewards</td>
+        <td style="padding:7px 10px">Gamification platform</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">◐</td>
+        <td style="padding:7px 10px">○</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">Featured / Hub</td>
+        <td style="padding:7px 10px">Built by us</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">●</td>
+        <td style="padding:7px 10px">n/a</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:11.5px;color:#8b8798;margin:0 0 6px">● typically available &nbsp;·&nbsp; ◐ available with configuration / higher plan tier &nbsp;·&nbsp; ○ confirm with vendor &nbsp;·&nbsp; values are planning assumptions, not verified commitments.</p>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">3 · The Locked-Down Pages (Embedding)</h2>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Why can't we just iframe the real pages inside the hub?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 12px">Because those platforms deliberately forbid it. Zendesk, 360Learning, and Zealot send <code style="background:#f2eeec;padding:1px 5px;border-radius:4px;font-size:13px">X-Frame-Options</code> / <code style="background:#f2eeec;padding:1px 5px;border-radius:4px;font-size:13px">Content-Security-Policy: frame-ancestors</code> headers that tell the browser to refuse rendering on any domain but their own. This is a server-side security control on <em>their</em> end — there is no client-side trick that overrides it, by design. Attempting to proxy around it (stripping headers on our own domain) is brittle, inherits their entire login/session/cookie behavior, and can break their app — not a path I'd recommend.</p>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">So what does "inside the hub" realistically mean?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 6px">Two viable patterns, used together:</p>
+  <ul style="font-size:14.5px;line-height:1.6;margin:0 0 12px;padding-left:20px">
+    <li style="margin-bottom:5px"><strong>Native surfaces</strong> — the hub renders content <em>itself</em> by pulling from each vendor's API (course lists, article previews, mission cards), styled in Momentus brand. This is what the prototype's Learning and Missions pages demonstrate.</li>
+    <li style="margin-bottom:0"><strong>Seamless hand-off</strong> — for deep interaction (taking a course, filing a ticket), the hub links out to the real system, and SSO makes that feel like one product rather than a logout/login.</li>
+  </ul>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">4 · Unified Search — The Real Challenge</h2>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Can we build search across all five systems ourselves?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 12px">Technically we could stand up a basic version. But building search that is <em>good</em> — fast, relevant, complete, and above all <strong>permission-aware</strong> — across five separately access-controlled systems is a significant, ongoing engineering commitment. My honest recommendation is that we should <strong>not</strong> attempt to own this from scratch.</p>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">What makes it hard?</h3>
+  <ul style="font-size:14.5px;line-height:1.6;margin:0 0 12px;padding-left:20px">
+    <li style="margin-bottom:6px"><strong>Permission trimming is the core problem.</strong> Our content is locked down — a given user may see some articles, courses, or community posts and not others. Unified results must reflect <em>that specific user's</em> entitlements in each system, at query time. Getting this wrong leaks restricted content; that's a security incident, not a bug.</li>
+    <li style="margin-bottom:6px"><strong>Inconsistent APIs.</strong> Each vendor exposes search/content differently (or barely). Rate limits, pagination, and freshness vary. Community and the gamification platform in particular need API access confirmed before anything is possible.</li>
+    <li style="margin-bottom:6px"><strong>Freshness vs. index.</strong> A central index is fast but can go stale and must be re-synced (and re-permissioned) constantly. Query-time federation is always fresh but as slow as the slowest vendor and harder to rank well.</li>
+    <li style="margin-bottom:0"><strong>Relevance &amp; ranking.</strong> Merging results from five sources into one sensibly-ordered list is a whole discipline (this is what dedicated search vendors sell).</li>
+  </ul>
+
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">What are the realistic options?</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 6px">
+    <thead>
+      <tr style="background:#1c1e61;color:#fff;text-align:left">
+        <th style="padding:8px 10px;font-weight:600;width:24%">Approach</th>
+        <th style="padding:8px 10px;font-weight:600">How it works</th>
+        <th style="padding:8px 10px;font-weight:600;width:26%">Trade-off</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">A. Query-time federation (build)</td>
+        <td style="padding:7px 10px">Hub calls each vendor's search API live and merges results.</td>
+        <td style="padding:7px 10px">Always fresh; weak ranking; slow; we own all the permission logic.</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3;background:#faf8f6">
+        <td style="padding:7px 10px;font-weight:600">B. Central index (build)</td>
+        <td style="padding:7px 10px">Ingest all content into our own index (Elastic / OpenSearch / Azure AI Search).</td>
+        <td style="padding:7px 10px">Fast &amp; good ranking; we must sync + re-permission continuously; highest build cost.</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">C. Federated search platform (buy)</td>
+        <td style="padding:7px 10px">A connector-based product — Coveo, Glean, Algolia, Elastic — that already handles ingestion, permission trimming, and ranking.</td>
+        <td style="padding:7px 10px">Fastest to a <em>trustworthy</em> result; license cost; still needs per-connector config.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="background:#eefaf3;border:1px solid #bfe8d2;border-left:4px solid #1f8a5b;border-radius:10px;padding:14px 18px;margin:12px 0 6px">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1f8a5b;margin-bottom:6px">Recommendation</div>
+    <p style="font-size:14px;line-height:1.6;margin:0">Lead with <strong>Option C</strong>. A federated search platform with pre-built connectors solves the two things that would otherwise sink us: permission-aware results and cross-source ranking. We keep the hub's branded UI and let the search layer do the heavy lifting. Treat Option A as a fallback only for systems a connector doesn't cover.</p>
+  </div>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">5 · Personalization &amp; the "Adoption Agent"</h2>
+  <h3 style="font-size:15px;font-weight:700;margin:16px 0 4px">Where does the "why you're seeing this" logic get its data?</h3>
+  <p style="font-size:14.5px;line-height:1.65;margin:0 0 12px">From product-usage telemetry we largely already collect — via a product-analytics layer (e.g. Pendo, Gainsight PX, Amplitude) plus the entitlement data in each system. The recommendation cards in the prototype ("low adoption of Functions", "active at 1 of 6 venues") are exactly the kind of rule that reads a usage signal, compares it to a peer benchmark, and fires a nudge. That needs: (1) a reliable per-account usage feed, (2) a benchmark dataset, and (3) a lightweight rules or recommendation engine. None of this is exotic, but it's a dependency, not free.</p>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">6 · Security, Compliance &amp; Data</h2>
+  <ul style="font-size:14.5px;line-height:1.6;margin:0 0 12px;padding-left:20px">
+    <li style="margin-bottom:5px"><strong>Data handling:</strong> a central index or personalization store means we hold copies of content/usage data — triggering data-classification, retention, and residency review.</li>
+    <li style="margin-bottom:5px"><strong>Permission integrity:</strong> the search layer must never out-run the source system's access rules (see §4).</li>
+    <li style="margin-bottom:0"><strong>Vendor posture:</strong> each integration is a data-sharing relationship — confirm SOC 2 / ISO, DPAs, and token scopes before connecting.</li>
+  </ul>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">7 · Suggested Phasing</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 6px">
+    <thead>
+      <tr style="background:#1c1e61;color:#fff;text-align:left">
+        <th style="padding:8px 10px;font-weight:600;width:16%">Phase</th>
+        <th style="padding:8px 10px;font-weight:600">Scope</th>
+        <th style="padding:8px 10px;font-weight:600;width:30%">Proves</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">Crawl</td>
+        <td style="padding:7px 10px">Hub shell + SSO to 2–3 highest-value destinations; links-out only; no unified search.</td>
+        <td style="padding:7px 10px">The one-login premise, for real.</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3;background:#faf8f6">
+        <td style="padding:7px 10px;font-weight:600">Walk</td>
+        <td style="padding:7px 10px">Native surfaces via API (Learning, Missions, Support previews) + SCIM provisioning + a search pilot on the two easiest sources.</td>
+        <td style="padding:7px 10px">Branded native content + permission-aware search on a subset.</td>
+      </tr>
+      <tr style="border-bottom:1px solid #ece7e3">
+        <td style="padding:7px 10px;font-weight:600">Run</td>
+        <td style="padding:7px 10px">Full federated search across all five + adoption-agent personalization live on real telemetry.</td>
+        <td style="padding:7px 10px">The complete prototype vision.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:19px;font-weight:700;margin:26px 0 10px">8 · Open Decisions &amp; What We Need</h2>
+  <ol style="font-size:14.5px;line-height:1.6;margin:0 0 6px;padding-left:20px">
+    <li style="margin-bottom:5px">Which IdP is the single source of truth, and who owns role-to-system mapping?</li>
+    <li style="margin-bottom:5px">Confirm per vendor: SSO tier, SCIM availability, and search/content API access — especially <strong>Community (Zealot)</strong> and the <strong>Missions</strong> platform, our biggest unknowns.</li>
+    <li style="margin-bottom:5px">Build vs. buy decision on search (recommend buy) — and budget owner.</li>
+    <li style="margin-bottom:5px">Confirmed URL for the <strong>Priava</strong> support center (placeholder in the prototype).</li>
+    <li style="margin-bottom:0">Source-of-truth for usage telemetry and peer benchmarks that power the adoption agent.</li>
+  </ol>
+
+  <p style="font-size:11.5px;color:#8b8798;margin:22px 0 0;border-top:1px solid #ece7e3;padding-top:10px">This document is a planning aid. Capability markings are assumptions to be validated with each vendor and with Security before commitments are made.</p>
+
+</x-import>
+</x-dc>
+</body>
+</html>

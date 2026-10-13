@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', Verdana, Geneva, sans-serif; color: #1c1e61; background: #e9e5e1; -webkit-font-smoothing: antialiased; }
+  a { color: #4146e0; text-decoration: none; }
+  a:hover { color: #9B59B6; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:24px 16px 60px">
+  <!-- switcher chrome (not part of the email) -->
+  <div style="max-width:680px;margin:0 auto 22px">
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8b8798;text-align:center;margin-bottom:14px">Digest email templates</div>
+    <div style="display:flex;gap:8px;background:#fff;border:1px solid #d9d2cd;border-radius:12px;padding:6px">
+      <button onClick="{{ goInstant }}" style="{{ tab.instant }}">Instant</button>
+      <button onClick="{{ goWeekly }}" style="{{ tab.weekly }}">Weekly Digest</button>
+      <button onClick="{{ goMonthly }}" style="{{ tab.monthly }}">Monthly Digest</button>
+    </div>
+  </div>
+
+  <!-- EMAIL SHELL -->
+  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(28,30,97,0.18)">
+    <!-- header -->
+    <div style="position:relative;background:linear-gradient(120deg,#1c1e61,#4146e0 60%,#9B59B6);padding:26px 32px;overflow:hidden">
+      <img src="assets/momentus-star-white.png" alt="" style="position:absolute;right:-24px;top:-20px;width:150px;opacity:0.14;pointer-events:none" />
+      <img src="assets/momentus-logo-white.png" alt="Momentus Technologies" style="height:24px;display:block;position:relative;z-index:1" />
+      <div style="position:relative;z-index:1;margin-top:14px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.85)">{{ kicker }}</div>
+      <div style="position:relative;z-index:1;font-size:26px;font-weight:800;color:#fff;line-height:1.15;margin-top:4px">{{ heroTitle }}</div>
+    </div>
+
+    <!-- INSTANT -->
+    <sc-if value="{{ showInstant }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:28px 32px 12px">
+        <div style="font-size:15px;color:#555770;line-height:1.6">Hi Sam — something new was just curated for you in the Momentus Customer Hub.</div>
+      </div>
+      <div style="padding:8px 32px 4px">
+        <div style="border:1px solid #e6e0dc;border-radius:14px;overflow:hidden">
+          <div style="height:96px;background:linear-gradient(120deg,#4146E0,#9B59B6);display:flex;align-items:center;padding:0 22px">
+            <span style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.22);color:#fff;border-radius:99px;padding:6px 14px;font-size:12px;font-weight:700"><i>★</i> Product Release</span>
+          </div>
+          <div style="padding:20px 22px">
+            <div style="font-size:12px;color:#9a96a8;font-weight:600;margin-bottom:6px">July 8, 2026</div>
+            <div style="font-size:19px;font-weight:800;color:#1c1e61;line-height:1.25;margin-bottom:8px">Momentus Elite 2026.2 is now available</div>
+            <div style="font-size:14px;color:#555770;line-height:1.6;margin-bottom:18px">The summer release introduces the Integrated Payments dashboard, faster calendar sync, and 20+ reporting improvements across your venue operations.</div>
+            <a href="#" style="display:inline-block;background:#4146e0;color:#fff;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700">Read the release notes →</a>
+          </div>
+        </div>
+      </div>
+      <div style="padding:22px 32px 8px">
+        <div style="font-size:13px;color:#8b8798;line-height:1.6">You're receiving this because you subscribed to <strong style="color:#1c1e61">Instant</strong> updates. Prefer fewer emails? Switch to a Weekly or Monthly digest in your Hub subscription settings.</div>
+      </div>
+    </sc-if>
+
+    <!-- WEEKLY -->
+    <sc-if value="{{ showWeekly }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:26px 32px 6px">
+        <div style="font-size:15px;color:#555770;line-height:1.6">Here's everything curated for you in the last 7 days — {{ weekRange }}.</div>
+      </div>
+      <div style="padding:14px 32px 4px">
+        <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4146e0;margin-bottom:12px">📣 New announcements</div>
+        <sc-for list="{{ weekAnnouncements }}" as="a" hint-placeholder-count="2">
+          <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #f2f2f7">
+            <div style="width:8px;height:8px;border-radius:50%;background:{{ a.accent }};margin-top:7px;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:{{ a.accent }};margin-bottom:2px">{{ a.tag }}</div>
+              <div style="font-size:15px;font-weight:700;color:#1c1e61;line-height:1.3;margin-bottom:3px">{{ a.title }}</div>
+              <div style="font-size:13px;color:#68737d;line-height:1.5">{{ a.body }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:20px 32px 4px">
+        <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6d5ef0;margin-bottom:12px">✦ Recommended for you</div>
+        <sc-for list="{{ weekRecs }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #f2f2f7">
+            <div style="width:34px;height:34px;border-radius:9px;background:{{ r.accent }}18;color:{{ r.accent }};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0">{{ r.badge }}</div>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:700;color:#1c1e61;line-height:1.3">{{ r.title }}</div>
+              <div style="font-size:13px;color:#68737d;line-height:1.5">{{ r.reason }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:22px 32px 8px">
+        <a href="#" style="display:block;text-align:center;background:#4146e0;color:#fff;border-radius:10px;padding:13px;font-size:14px;font-weight:700">Open the Customer Hub →</a>
+      </div>
+    </sc-if>
+
+    <!-- MONTHLY -->
+    <sc-if value="{{ showMonthly }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:26px 32px 4px">
+        <div style="font-size:15px;color:#555770;line-height:1.65">Welcome to the {{ monthName }} edition of the Momentus Technologies Education &amp; Community Digest! Explore the latest product education, resources, community highlights, and upcoming events designed to help you get the most from your Momentus experience.</div>
+      </div>
+
+      <div style="padding:8px 32px 0">
+        <sc-for list="{{ monthlySections }}" as="s" hint-placeholder-count="4">
+          <div style="border-top:2px solid #f2f2f7;padding:22px 0 6px">
+            <div style="font-size:18px;font-weight:800;color:#1c1e61;margin-bottom:14px">{{ s.heading }}</div>
+            <sc-for list="{{ s.items }}" as="i" hint-placeholder-count="2">
+              <div style="display:flex;gap:14px;margin-bottom:16px">
+                <div style="width:44px;height:44px;border-radius:11px;background:{{ i.bg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">{{ i.emoji }}</div>
+                <div style="flex:1">
+                  <div style="font-size:15px;font-weight:700;color:#1c1e61;line-height:1.3;margin-bottom:3px">{{ i.title }}</div>
+                  <div style="font-size:13px;color:#68737d;line-height:1.55;margin-bottom:5px">{{ i.body }}</div>
+                  <a href="#" style="font-size:13px;font-weight:700;color:#4146e0">{{ i.cta }} →</a>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- footer -->
+    <div style="background:#1c1e61;padding:24px 32px;margin-top:18px">
+      <img src="assets/momentus-logo-white.png" alt="Momentus Technologies" style="height:18px;display:block;opacity:0.9" />
+      <div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6;margin-top:12px">You're receiving the {{ freqLabel }} from the Momentus Customer Hub. <a href="#" style="color:#cfd4ff">Manage your subscription</a> · <a href="#" style="color:#cfd4ff">Unsubscribe</a></div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:10px">© 2026 Momentus Technologies</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: 'instant' };
+
+  weekAnnouncements = [
+    { tag: 'Product Release', accent: '#4146e0', title: 'Momentus Elite 2026.2 is now available', body: 'Integrated Payments dashboard, faster calendar sync, and 20+ reporting improvements.' },
+    { tag: 'New Support Workflow', accent: '#1c1e61', title: 'Submit and track tickets from the hub', body: 'Open a case, attach files, and follow status without leaving Momentus.' },
+  ];
+  weekRecs = [
+    { badge: 'C', accent: '#4146e0', title: 'Event Booking & Space Management', reason: 'Continue where you left off — 72% complete.' },
+    { badge: 'F', accent: '#1c1e61', title: 'Try Functions to automate billing', reason: 'Low adoption on your account — teams save ~4 hrs/week.' },
+    { badge: 'M', accent: '#9B59B6', title: 'Share your favorite product tip', reason: 'Popular mission this week — earn 100 points.' },
+  ];
+
+  monthlySections = [
+    { heading: 'Upcoming Webinars', items: [
+      { emoji: '🎥', bg: 'linear-gradient(135deg,#4146e0,#6d5ef0)', title: 'Momentus AI for Sales — Product Preview', body: 'July 15 at 9:00 AM CDT. A sneak peek at AI that helps qualify leads and build revenue-capturing proposals.', cta: 'Register' },
+      { emoji: '🚀', bg: 'linear-gradient(135deg,#1c1e61,#4146e0)', title: 'Elite July 2026 Product Release', body: 'July 23 at 9:00 AM CDT. A first look at the latest enhancements in the July release.', cta: 'Register' },
+    ] },
+    { heading: 'On-Demand: Elite Live Q&A', items: [
+      { emoji: '▶️', bg: 'linear-gradient(135deg,#9B59B6,#db2777)', title: 'Missed our June Elite Live Q&A?', body: 'Watch the recording for answers to real customer questions, common use cases, and best practices.', cta: 'Watch the recording' },
+    ] },
+    { heading: 'In the Community', items: [
+      { emoji: '⚽', bg: 'linear-gradient(135deg,#059669,#2dd4bf)', title: 'World Cup Missions — now through July 20', body: 'Over 80% of World Cup stadiums run on Momentus. Earn 100 points each for sharing your photos, stories, and predictions.', cta: 'Go to missions' },
+    ] },
+    { heading: 'In the Learning Center', items: [
+      { emoji: '🎓', bg: 'linear-gradient(135deg,#db2777,#f79a3e)', title: 'NEW — Functions Tips & Tricks', body: 'See how Wisconsin Center District, Pittsburgh Cultural Trust, and Overture Center use Functions to streamline operations.', cta: 'Start learning' },
+    ] },
+    { heading: 'All Resources', items: [
+      { emoji: '💬', bg: 'linear-gradient(135deg,#4146e0,#9B59B6)', title: 'Customer Community', body: 'Connect with peers, share best practices, complete missions and earn rewards.', cta: 'Visit the Community' },
+      { emoji: '📅', bg: 'linear-gradient(135deg,#1c1e61,#4146e0)', title: 'Monthly Webinar Series', body: 'Live sessions, product release updates, training, and roundtable discussions with peers.', cta: 'View webinars' },
+    ] },
+  ];
+
+  renderVals() {
+    const v = this.state.view;
+    const mkTab = (id) => {
+      const on = v === id;
+      return { flex: '1', border: 'none', borderRadius: '9px', padding: '11px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', background: on ? '#4146e0' : 'transparent', color: on ? '#fff' : '#68737d' };
+    };
+    const meta = {
+      instant: { kicker: 'Instant Update', heroTitle: 'Something new for you', freqLabel: 'Instant updates' },
+      weekly: { kicker: 'Weekly Digest', heroTitle: 'Your weekly roundup', freqLabel: 'Weekly Digest' },
+      monthly: { kicker: 'Monthly Digest', heroTitle: 'June 2026 Digest', freqLabel: 'Monthly Digest' },
+    }[v];
+    return {
+      goInstant: () => this.setState({ view: 'instant' }),
+      goWeekly: () => this.setState({ view: 'weekly' }),
+      goMonthly: () => this.setState({ view: 'monthly' }),
+      tab: { instant: mkTab('instant'), weekly: mkTab('weekly'), monthly: mkTab('monthly') },
+      showInstant: v === 'instant',
+      showWeekly: v === 'weekly',
+      showMonthly: v === 'monthly',
+      kicker: meta.kicker,
+      heroTitle: meta.heroTitle,
+      freqLabel: meta.freqLabel,
+      weekRange: 'Jul 3–9, 2026',
+      monthName: 'June',
+      weekAnnouncements: this.weekAnnouncements,
+      weekRecs: this.weekRecs,
+      monthlySections: this.monthlySections,
+    };
+  }
+}
+</script>
+</body>
+</html>
